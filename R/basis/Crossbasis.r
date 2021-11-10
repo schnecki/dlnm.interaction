@@ -11,7 +11,8 @@ Crossbasis <- R6::R6Class(
         .input = NULL,    # matrix (input vector/matrix)
         .basisvar = NULL, # Basis
         .basislag = NULL, # Basis
-        .lag = NULL       # numeric (2)
+        .lag = NULL,       # numeric (2)
+        .dimension = NULL  # numeric (2)
     ),
 
     ## Methods
@@ -22,7 +23,6 @@ Crossbasis <- R6::R6Class(
             self$basislag <- basislag$clone() # Clone
             self$lag <- c(min(self$basislag$input), max(self$basislag$input))
             self$x <- computeCrossbasis(self) # Compute crossbasis
-
         }
     ),
 
@@ -34,6 +34,7 @@ Crossbasis <- R6::R6Class(
             if (!(is.matrix(value)))
                 stop("ERROR: Unallowed property value 'x' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.x <- value
+            private$.dimension <- c(nrow(value), ncol(value))
             return(self)
         },
         input = function(value) {
@@ -46,14 +47,14 @@ Crossbasis <- R6::R6Class(
         basisvar = function(value) {
             if (missing(value)) return(private$.basisvar)
             if (!("Basis" %in% class(value)))
-                stop("ERROR: Unallowed property ", value, " for 'basisvar' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
+                stop("ERROR: Unallowed object (", class(value), ") for 'basisvar' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.basisvar <- value
             return(self)
         },
         basislag = function(value) {
             if (missing(value)) return(private$.basislag)
             if (!("Basis" %in% class(value)))
-                stop("ERROR: Unallowed property ", value, " for 'basislag' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
+                stop("ERROR: Unallowed object (", class(value), ") for 'basislag' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.basislag <- value
             return(self)
         },
@@ -66,9 +67,38 @@ Crossbasis <- R6::R6Class(
         },
         lags = function() {
             return(as.vector(private$.basislag$input))
-        }
+        },
+        dimension = function() return(private$.dimension) # Dimension is automatically set
     )
 )
+
+## setClass("Crossbasis")
+## setAs(from = "Crossbasis", to = "formula", def = function(from) from$x)
+
+## as.matrix <- function(x, ...) {
+##     if ("Crossbasis" %in% class(x)) {
+##         return(x$x)
+##     } else {
+##         args <- list(...)
+##         return(base::as.matrix(x, args))
+##     }
+## }
+
+## as.formula <- function(x, ...) {
+##     stop("nd")
+## }
+
+
+## We could implement the + and other operators
+## `+.Crossbasis` <- function(b1, b2) {
+##     ret <- b1$clone()
+##     ret$x <- b1$x + b2$x
+##     ## ret$fun <- paste(b1$fun, "+", b2$fun)
+##     ## ret$cen <- NULL
+##     ## ret$intercept <- b1$intercept || b2$intercept
+##     return(ret$x)
+## }
+
 
 #' Compute the crossbasis by first lagging the variable (basisvar) and then multiplying by the lag.
 computeCrossbasis <- function(cb) {
@@ -88,7 +118,7 @@ computeCrossbasis <- function(cb) {
     return(crossbasis)
 }
 
-#' Lag a matrix
+#' Lag vector `x` by a given vector of `lags`
 mkLaggedMatrix <- function(x, lags) {
     mkLag <- function(x, lag) {
         if (lag < 0) stop("all lags in basislag have to be >=0. Saw ", lag)
