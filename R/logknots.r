@@ -4,8 +4,9 @@
 #'
 #' @param lag  numeric/vector  maximum lag, lag range or vector of lags
 #' @param nk   numeric         number of knots (must be >0)
+#' @return     vector
 #' @export
-logknots <- function(lag, nk = NULL) {
+logknots <- function(lag, nk) {
     lag <- as.vector(lag)
     if (length(lag) < 1) stop("Expected a lag or vector for 'lag' in lagknots")
 

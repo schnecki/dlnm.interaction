@@ -21,10 +21,16 @@ Basis <- R6::R6Class(
         initialize = function(x, input, fun, intercept = FALSE, cen = NULL) {
             self$x <- x
             self$input <- as.matrix(input)
-            self$fun <- fun # Needed at all?
+            self$fun <- fun
             self$intercept <- intercept
             self$cen <- cen
-        }),
+        },
+        #' Make a new basis with input vector with same settings. Must return matrix object.
+        mkNewWith = function(input) {
+            stop("mkNewWith must be overwritten by each class. Not done for class '", class(self)[1], "'")
+        }
+
+    ),
 
     ## Accessable properties. Active bindings look like fields, but each time they are accessed,
     ## they call a function. They are always publicly visible.
@@ -33,7 +39,7 @@ Basis <- R6::R6Class(
         x = function(value) {
             if (missing(value)) return(private$.x)
             if (!(is.matrix(value)))
-                stop("ERROR: Unallowed property value 'x' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
+                stop("ERROR: Unallowed property value ", value, " for 'x' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.x <- value
             private$.range <- range(value, na.rm = TRUE)
             private$.dimension <- c(nrow(value), ncol(value))

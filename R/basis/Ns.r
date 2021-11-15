@@ -22,10 +22,14 @@ Ns <- R6::R6Class(
             basis <- splines::ns(x, knots = knots, intercept = intercept, Boundary.knots = Boundary.knots)
             dimnames(basis) <- list(ns, seq(ncol(basis)))
             className <- get(class(self)[[1]], -1)$classname
-            super$initialize(basis, x, className, intercept)
             self$degree <- attr(basis, "degree")
             self$knots <- attr(basis, "knots")
             self$boundary.knots <- attr(basis, "Boundary.knots")
+            ## attributes(basis) <- NULL
+            super$initialize(basis, x, className, intercept)
+        },
+        mkNewWith = function(x) {
+            return(Ns$new(x, self$knots, self$intercept, self$boundary.knots))
         }
     ),
 

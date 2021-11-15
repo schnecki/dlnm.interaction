@@ -7,12 +7,13 @@ Crossbasis <- R6::R6Class(
 
     ## Properties
     private = list(
-        .x = NULL,        # matrix
-        .input = NULL,    # matrix (input vector/matrix)
-        .basisvar = NULL, # Basis
-        .basislag = NULL, # Basis
+        .x = NULL,         # matrix
+        .input = NULL,     # matrix (input vector/matrix)
+        .basisvar = NULL,  # Basis
+        .basislag = NULL,  # Basis
         .lag = NULL,       # numeric (2)
-        .dimension = NULL  # numeric (2)
+        .dimension = NULL, # numeric (2)
+        .range = NULL      # numeric (2)
     ),
 
     ## Methods
@@ -35,6 +36,7 @@ Crossbasis <- R6::R6Class(
                 stop("ERROR: Unallowed property value 'x' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.x <- value
             private$.dimension <- c(nrow(value), ncol(value))
+            private$.range <- range(value, na.rm = TRUE)
             return(self)
         },
         input = function(value) {
@@ -68,6 +70,7 @@ Crossbasis <- R6::R6Class(
         lags = function() {
             return(as.vector(private$.basislag$input))
         },
+        range = function() return(private$.range),        # Range is automatically set
         dimension = function() return(private$.dimension) # Dimension is automatically set
     )
 )

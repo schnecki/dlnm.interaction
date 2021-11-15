@@ -15,15 +15,18 @@ Authors@R:
            email = "carmen.iniguez@uv.es",
            comment = c(ORCID = "0000-0002-5156-0732"))
 Imports:
+  stringr,
   R6,
   stats,
+  purrr,
   # graphics,
   # grDevices,
   utils,
   splines,
   # nlme,
-  # mgcv,
-  tsModel
+  mgcv,
+  tsModel,
+  ggplot2
 Depends: R (>= 3.2)
 Suggests:
   survival,
