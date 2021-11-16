@@ -2,23 +2,48 @@
 #' @rdname Crosspred
 Crosspred.privateFunctions <- base::list(
 
+    #' Generate list of possible names
+    possibleNames = function(name, crossbasis) {
+        possNames <- base::list()
+        if (crossbasis$dimension[2] == 1) {
+            possNames <- base::append(possNames, name)
+        } else {
+            for (i in seq(1, crossbasis$dimension[2]))
+                possNames <- base::append(possNames, paste(name, "$x", i, sep = ""))
+        }
+        return(possNames)
+    },
+
     #' Calculate coef
-    calcCoef = function() {
+    calcCoef = function(cbName, cb) {
         coef <- private$getcoef(self$model, class(self$model))
-        possNames <- private$possibleNames(self$crossbasisName, self$crossbasis)
+        possNames <- private$possibleNames(cbName, cb)
         indices <- private$mkIndexVector(names(coef), possNames)
         coef <- coef[indices]
         return(coef)
     },
 
-    #' Calculate vcov
-    calcVcov = function() {
+    ## #' Calculate vcov
+    ## calcVcov = function(cbName, cb) {
+    ##     vcov <- private$getvcov(self$model, class(self$model))
+    ##     possNames <- private$possibleNames(cbName, cb)
+    ##     indices <- private$mkIndexVector(rownames(vcov), possNames)
+    ##     vcov <- vcov[indices, indices, drop = FALSE]
+    ##     return(vcov)
+    ## },
+    #'  Calculate vcov, with possible to select different rows/cols.
+    calcVcov = function(cbNameCols, cbCols, cbNameRows = NULL, cbRows = NULL) {
+        if (is.null(cbNameRows)) cbNameRows <- cbNameCols
+        if (is.null(cbRows)) cbRows <- cbCols
         vcov <- private$getvcov(self$model, class(self$model))
-        possNames <- private$possibleNames(self$crossbasisName, self$crossbasis)
-        indices <- private$mkIndexVector(rownames(vcov), possNames)
-        vcov <- vcov[indices, indices, drop = FALSE]
+        possNamesCols <- private$possibleNames(cbNameCols, cbCols)
+        possNamesRows <- private$possibleNames(cbNameRows, cbRows)
+        indicesRows <- private$mkIndexVector(rownames(vcov), possNamesRows)
+        indicesCols <- private$mkIndexVector(colnames(vcov), possNamesCols)
+        vcov <- vcov[indicesRows, indicesCols, drop = FALSE]
         return(vcov)
     },
+
 
     #' Get Link
     getLink = function(model.link = NULL) {
@@ -36,18 +61,6 @@ Crosspred.privateFunctions <- base::list(
         return(link)
     },
 
-
-    #' Generate list of possible names
-    possibleNames = function(name, crossbasis) {
-        possNames <- base::list()
-        if (crossbasis$dimension[2] == 1) {
-            possNames <- base::append(possNames, name)
-        } else {
-            for (i in seq(1, crossbasis$dimension[2]))
-                possNames <- base::append(possNames, paste(name, "$x", i, sep = ""))
-        }
-        return(possNames)
-    },
 
     #' Vector for finding the index of the column and row names of coef/vcov
     mkIndexVector = function(names, possNames) {
@@ -119,6 +132,8 @@ Crosspred.privateFunctions <- base::list(
         ## create marginal basis and call tensor
         ## NB: order of basis matrices in tensor changed since version 2.2.4 centering applied
         ##     only marginally to var dimension
+        ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
         basisvar <- crossbasis$basisvar$mkNewWith(varvec)$x
         basislag <- crossbasis$basislag$mkNewWith(lagvec)$x
 

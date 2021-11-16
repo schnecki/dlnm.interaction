@@ -50,8 +50,8 @@ Crosspred <- R6::R6Class(
                 self$model <- model
                 self$model.class <- class(model)
                 self$link <- private$getLink(model.link)
-                self$coef <- private$calcCoef()
-                self$vcov <- private$calcVcov()
+                self$coef <- private$calcCoef(self$crossbasisName, self$crossbasis)
+                self$vcov <- private$calcVcov(self$crossbasisName, self$crossbasis)
             }
             self$at <- at
             self$cen <- private$mkcen(cen, crossbasis)

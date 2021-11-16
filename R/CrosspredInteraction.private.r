@@ -1,154 +1,23 @@
 #' @rdname CrosspredInteraction
 CrosspredInteraction.privateFunctions <- list(
-    #' Generate list of possible names
-    possibleNames = function(name, crossbasis) {
-        ##:ess-bp-start::conditional@:##
-    browser(expr={TRUE})##:ess-bp-end:##
-        possNames <- base::list()
-        if (crossbasis$dimension[2] == 1) {
-            possNames <- base::append(possNames, name)
-        } else {
-            for (i in seq(1, crossbasis$dimension[2]))
-                possNames <- base::append(possNames, paste(name, "$x", i, sep = ""))
-        }
-        return(possNames)
-    },
-
-    #' Calculate coef
-    calcCoef = function(cb, cbName) {
-
-        coef <- private$getcoef(self$model, class(self$model))
-        possNames <- private$possibleNames(cbName, cb)
-        indices <- private$mkIndexVector(names(coef), possNames)
-        coef <- coef[indices]
-        return(coef)
-    },
-
-    #' Calculate vcov
-    calcVcov = function(cb, cbNameRows, cbNameCols = NULL) {
-        if (is.null(cbNameCols)) cbNameCols <- cbNameRows
-        vcov <- private$getvcov(self$model, class(self$model))
-        possNamesRows <- private$possibleNames(cbNameRows, cb)
-        possNamesCols <- private$possibleNames(cbNameCols, cb)
-        indicesRows <- private$mkIndexVector(rownames(vcov), possNamesRows)
-        indicesCols <- private$mkIndexVector(colnames(vcov), possNamesCols)
-        ##:ess-bp-start::conditional@:##
-    browser(expr={TRUE})##:ess-bp-end:##
-        vcov <- vcov[indicesRows, indicesCols, drop = FALSE]
-        return(vcov)
-    },
-
-    #' Get Link
-    getLink = function(model.link=NULL) {
-        if (!base::is.null(model.link)) return(model.link)
-        class <- class(self$model)
-        model <- self$model
-
-        ## OTHERWISE, EXTRACT FROM MODEL (IF AVAILABLE)
-        link <- if (base::all(class %in% c("lm")) || base::all(class %in% c("lme")) || base::any(class %in% "nlme") || base::any(class %in% "lmerMod")) "identity"
-                else if (base::any(class %in% c("clogit"))) "logit"
-                else if (base::any(class %in% c("coxph"))) "log"
-                else if (base::any(class %in% c("glm")) || base::any(class %in% c("glmmPQL"))) model$family$link
-                else if (base::any(class %in% c("glmerMod"))) model@resp$family$link
-                else NA
-        return(link)
-    },
-
-
-    #' Vector for finding the index of the column and row names of coef/vcov
-    mkIndexVector = function(names, possNames) {
-        ls <- base::list()
-        for (idx in seq(1, base::length(names)))
-            if (base::any(names[idx] %in% possNames)) ls <- base::append(ls, idx)
-        return(unlist(ls))
-    },
-
-    # Extract coef from model
-    getcoef = function(model, class) {
-        ## NB: gam, gee AND geeglm HAVE CLASS glm AS WELL
-        coef <-
-            if (base::any(class %in% c("glm", "gam", "coxph"))) coef(model)
-            else if (base::any(class %in% c("lme", "lmerMod", "glmerMod", "lmerModLmerTest"))) fixef(model)
-            else tryCatch(coef(model), error = function(w) "error")
-        if (base::identical(coef, "error"))
-            stop("methods for coef() and vcov() must exist for the class of object 'model'. If not, provide the arguments 'coef' and 'vcov'")
-        return(coef)
-    },
-
-    ## Extract vcov from model
-    getvcov = function(model, class) {
-        ## NB: gam, gee AND geeglm HAVE CLASS glm AS WELL
-        vcov <-
-            if (base::any(class %in% c("lm", "glm", "lme", "coxph")) && !base::any(class %in% c("gee"))) vcov(model)
-            else if (base::identical(class, c("gee", "glm"))) model$robust.variance
-            else if (base::any(class %in% c("geeglm"))) summary(model)$cov.scaled
-            else if (base::any(class %in% c("lmerMod", "glmerMod", "lmerModLmerTest"))) as.matrix(vcov(model))
-            else tryCatch(vcov(model), error = function(w) "error")
-        if (base::identical(vcov, "error"))
-            stop("methods for coef() and vcov() must exist for the class of object 'model'. If not, provide the arguments 'coef' and 'vcov'")
-        return(vcov)
-    },
-
-    #' Reimplementation of original function. Trying to keep the behaviour of dlnm.
-    mkcen = function(cen, crossbasis) {
-
-        ## If null, try to extract it from crossbasis
-        if (nocen <- base::is.null(cen)) cen <- crossbasis$basisvar$cen
-
-        ## set centering depending on function and cen type
-        if (crossbasis$basisvar$fun %in% c("Thr", "Strata", "Integer", "Lin")) {
-            if (base::is.logical(cen)) cen <- NULL
-        } else {
-            ## if null or true, set to (approximately) mid-range and message
-            if (base::is.null(cen) || (base::is.logical(cen) && cen)) cen <- median(pretty(crossbasis$range))
-            ## if false, null
-            if (base::is.logical(cen) && !cen) cen <- NULL
-        }
-
-        ## however, if intercept is present, set to null
-        int <- crossbasis$basisvar$intercept
-        if (base::is.logical(int) && int) cen <- NULL
-
-        ## message
-        if (nocen && !base::is.null(cen))
-            message("centering value unspecified. Automatically set to ", cen)
-        return(cen)
-    },
-
-    #' Tensor multiplication
-    mkXpred = function(crossbasis, predvar, predlag, cen) {
-
-        ## Create vectorized lagged values
-        varvec <- rep(predvar, base::length(predlag))
-        lagvec <- rep(predlag, each = base::length(predvar))
-
-        ## create marginal basis and call tensor
-        ## NB: order of basis matrices in tensor changed since version 2.2.4 centering applied
-        ##     only marginally to var dimension
-        basisvar <- crossbasis$basisvar$mkNewWith(varvec)$x
-        basislag <- crossbasis$basislag$mkNewWith(lagvec)$x
-
-        if (!base::is.null(cen)) {
-            basiscen <- crossbasis$basisvar$mkNewWith(cen)$x
-            basisvar <- scale(basisvar, center = basiscen, scale = FALSE)
-        }
-        Xpred <- tensor.prod.model.matrix(list(basisvar, basislag))
-        return(Xpred)
-    },
 
     #' Prediction of lag-specific effects
     predOfLag = function() {
-        ## create the matrix of transformed centred variables
-        predlag <- as.vector(self$crossbasis$basislag$input)
-        Xpred <- private$mkXpred(self$crossbasis, self$at, predlag, self$cen)
+
+        ## create the matrix of transformed centred variables. basislags are equal for both crossbases
+        predlag <- as.vector(self$crossbasisInteraction$basislag$input)
+        XpredInteraction <- private$mkXpred(self$crossbasisInteraction, self$at, predlag, self$cen)
+        XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
 
         ## Create lag-specific effects and SE
-        self$matfit <- matrix(Xpred %*% self$coef, base::length(self$at), base::length(predlag))
-        self$matse <- matrix(sqrt(pmax(0, rowSums((Xpred %*% self$vcov) * Xpred))), base::length(self$at), base::length(predlag))
+        self$matfitInteraction <- matrix(XpredInteraction %*% self$coef, base::length(self$at), base::length(predlag))
+        self$matfitExposure <- matrix(XpredExposure %*% self$coef, base::length(self$at), base::length(predlag))
+        self$matseInteraction <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcov) * XpredInteraction))), base::length(self$at), base::length(predlag))
+        self$matseExposure <- matrix(sqrt(pmax(0, rowSums((XpredExposure %*% self$vcov) * XpredExposure))), base::length(self$at), base::length(predlag))
 
         ## Names
-        rownames(self$matfit) <- rownames(self$matse) <- self$at
-        colnames(self$matfit) <- colnames(self$matse) <- outer("lag", predlag, paste, sep = "")
+        rownames(self$matfitInteraction) <- rownames(self$matseInteraction) <- rownames(self$matfitExposure) <- rownames(self$matseExposure) <- self$at
+        colnames(self$matfitInteraction) <- colnames(self$matseInteraction) <- colnames(self$matfitExposure) <- colnames(self$matseExposure) <- outer("lag", predlag, paste, sep = "")
 
 
     },
@@ -157,78 +26,97 @@ CrosspredInteraction.privateFunctions <- list(
     predOfOverall = function() {
 
         ## Create the matrix of transformed variables (dependent on type)
-        predlag <- as.vector(self$crossbasis$basislag$input)
-        Xpred <- private$mkXpred(self$crossbasis, self$at, predlag, self$cen)
+        predlag <- as.vector(self$crossbasisInteraction$basislag$input)
+        XpredInteraction <- private$mkXpred(self$crossbasisInteraction, self$at, predlag, self$cen)
+        XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
 
         ## Create overall and (optional) cumulative effects and se
-        Xpredall <- 0
+        XpredallInteraction <- 0
+        XpredallExposure <- 0
         if (self$cumul) {
-            self$cumfit <- self$cumse <- matrix(0, base::length(self$at), base::length(predlag))
+            self$cumfitInteraction <- self$cumseInteraction <- self$cumfitExposure <- self$cumseExposure <- matrix(0, base::length(self$at), base::length(predlag))
         }
         for (i in seq(base::length(predlag))) {
             ind <- seq(base::length(self$at)) + base::length(self$at) * (i - 1)
-            Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
+            XpredallInteraction <- XpredallInteraction + XpredInteraction[ind, , drop = FALSE]
+            XpredallExposure <- XpredallExposure + XpredExposure[ind, , drop = FALSE]
             if (self$cumul) {
-                self$cumfit[, i] <- Xpredall %*% self$coef
-                self$cumse[, i] <- sqrt(pmax(0, rowSums((Xpredall %*% self$vcov) * Xpredall)))
+                self$cumfitInteraction[, i] <- XpredallInteraction %*% self$coef
+                self$cumseInteraction[, i] <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcov) * XpredallInteraction)))
+                self$cumfitExposure[, i] <- XpredallExposure %*% self$coef
+                self$cumseExposure[, i] <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcov) * XpredallExposure)))
           }
         }
-        self$allfit <- as.vector(Xpredall %*% self$coef)
-        self$allse <- sqrt(pmax(0, rowSums((Xpredall %*% self$vcov) * Xpredall)))
+        self$allfitInteraction <- as.vector(XpredallInteraction %*% self$coef)
+        self$allseInteraction <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcov) * XpredallInteraction)))
+        self$allfitExposure <- as.vector(XpredallExposure %*% self$coef)
+        self$allseExposure <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcov) * XpredallExposure)))
 
         ## Names
-        names(self$allfit) <- names(self$allse) <- self$at
+        names(self$allfitInteraction) <- names(self$allseInteraction) <- names(self$allfitExposure) <- names(self$allseExposure) <- self$at
         if (self$cumul) {
-          rownames(self$cumfit) <- rownames(self$cumse) <- self$at
-          colnames(self$cumfit) <- colnames(self$cumse) <- outer("lag", predlag, paste, sep = "")
+          rownames(self$cumfitInteraction) <- rownames(self$cumseInteraction) <- rownames(self$cumfitExposure) <- rownames(self$cumseExposure) <-  self$at
+          colnames(self$cumfitInteraction) <- colnames(self$cumseInteraction) <- colnames(self$cumfitExposure) <- colnames(self$cumseExposure) <-  outer("lag", predlag, paste, sep = "")
         }
     },
 
     computeNormedValues = function() {
         z <- qnorm(1 - (1 - self$ci.level) / 2)
         if (!base::is.null(self$model.link) && self$model.link %in% c("log", "logit")) {
-            self$matRRfit <- exp(self$matfit)
-            self$matRRlow <- exp(self$matfit - z * self$matse)
-            self$matRRhigh <- exp(self$matfit + z * self$matse)
-            self$allRRfit <- exp(self$allfit)
-            self$allRRlow <- exp(self$allfit - z * self$allse)
-            names(self$allRRlow) <- names(self$allfit)
-            self$allRRhigh <- exp(self$allfit + z * self$allse)
-            names(self$allRRhigh) <- names(self$allfit)
+            self$matRRfitInteraction <- exp(self$matfitInteraction)
+            self$matRRlowInteraction <- exp(self$matfitInteraction - z * self$matseInteraction)
+            self$matRRhighInteraction <- exp(self$matfitInteraction + z * self$matseInteraction)
+            self$allRRfitInteraction <- exp(self$allfitInteraction)
+            self$allRRlowInteraction <- exp(self$allfitInteraction - z * self$allseInteraction)
+            names(self$allRRlowInteraction) <- names(self$allfitInteraction)
+            self$allRRhighInteraction <- exp(self$allfitInteraction + z * self$allseInteraction)
+            names(self$allRRhighInteraction) <- names(self$allfitInteraction)
             if (self$cumul) {
-                self$cumRRfit <- exp(self$cumfit)
-                self$cumRRlow <- exp(self$cumfit - z * self$cumse)
-                self$cumRRhigh <- exp(self$cumfit + z * self$cumse)
+                self$cumRRfitInteraction <- exp(self$cumfitInteraction)
+                self$cumRRlowInteraction <- exp(self$cumfitInteraction - z * self$cumseInteraction)
+                self$cumRRhighInteraction <- exp(self$cumfitInteraction + z * self$cumseInteraction)
+            }
+            self$matRRfitExposure <- exp(self$matfitExposure)
+            self$matRRlowExposure <- exp(self$matfitExposure - z * self$matseExposure)
+            self$matRRhighExposure <- exp(self$matfitExposure + z * self$matseExposure)
+            self$allRRfitExposure <- exp(self$allfitExposure)
+            self$allRRlowExposure <- exp(self$allfitExposure - z * self$allseExposure)
+            names(self$allRRlowExposure) <- names(self$allfitExposure)
+            self$allRRhighExposure <- exp(self$allfitExposure + z * self$allseExposure)
+            names(self$allRRhighExposure) <- names(self$allfitExposure)
+            if (self$cumul) {
+                self$cumRRfitExposure <- exp(self$cumfitExposure)
+                self$cumRRlowExposure <- exp(self$cumfitExposure - z * self$cumseExposure)
+                self$cumRRhighExposure <- exp(self$cumfitExposure + z * self$cumseExposure)
             }
         } else {
             ## RR or No RR?
-            self$matRRfit <- self$matfit
-            self$matRRlow <- self$matfit - z * self$matse
-            self$matRRhigh <- self$matfit + z * self$matse
-            self$allRRfit <- self$allfit
-            self$allRRlow <- self$allfit - z * self$allse
-            names(self$allRRlow) <- names(self$allfit)
-            self$allRRhigh <- self$allfit + z * self$allse
-            names(self$allRRhigh) <- names(self$allfit)
+            self$matRRfitInteraction <- self$matfitInteraction
+            self$matRRlowInteraction <- self$matfitInteraction - z * self$matseInteraction
+            self$matRRhighInteraction <- self$matfitInteraction + z * self$matseInteraction
+            self$allRRfitInteraction <- self$allfitInteraction
+            self$allRRlowInteraction <- self$allfitInteraction - z * self$allseInteraction
+            names(self$allRRlowInteraction) <- names(self$allfitInteraction)
+            self$allRRhighInteraction <- self$allfitInteraction + z * self$allseInteraction
+            names(self$allRRhighInteraction) <- names(self$allfitInteraction)
             if (self$cumul) {
-                self$cumRRfit <- self$cumfit
-                self$cumRRlow <- self$cumfit - z * self$cumse
-                self$cumRRhigh <- self$cumfit + z * self$cumse
+                self$cumRRfitInteraction <- self$cumfitInteraction
+                self$cumRRlowInteraction <- self$cumfitInteraction - z * self$cumseInteraction
+                self$cumRRhighInteraction <- self$cumfitInteraction + z * self$cumseInteraction
+            }
+            self$matRRfitExposure <- self$matfitExposure
+            self$matRRlowExposure <- self$matfitExposure - z * self$matseExposure
+            self$matRRhighExposure <- self$matfitExposure + z * self$matseExposure
+            self$allRRfitExposure <- self$allfitExposure
+            self$allRRlowExposure <- self$allfitExposure - z * self$allseExposure
+            names(self$allRRlowExposure) <- names(self$allfitExposure)
+            self$allRRhighExposure <- self$allfitExposure + z * self$allseExposure
+            names(self$allRRhighExposure) <- names(self$allfitExposure)
+            if (self$cumul) {
+                self$cumRRfitExposure <- self$cumfitExposure
+                self$cumRRlowExposure <- self$cumfitExposure - z * self$cumseExposure
+                self$cumRRhighExposure <- self$cumfitExposure + z * self$cumseExposure
             }
         }
-    },
-
-    ensureCumulValues = function() {
-        if (!self$cumul) { # Compute if it was set to FALSE
-            self$cumul <- TRUE
-            mkPredictions(self)
-        }
-    },
-
-    mkPredictions = function() {
-        ## Prediction of lag-specific effects
-        private$predOfLag()
-        private$predOfOverall()
-        private$computeNormedValues()
     }
 )

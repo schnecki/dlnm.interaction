@@ -11,8 +11,8 @@ colourPalette <- c("darkred", "darkblue", "orange", "green", "cyan", "magenta", 
 #' Function used for saving the plots.
 #' @param name string.
 savePlot <- function(filename, plot, plotSaveFormat = "pdf", plotDpi = 300, cols = 1, rows = 1, plotWidth = 10, plotHeight = 3) {
-    fp <- str_replace_all(paste(filename, ".", plotSaveFormat, sep = ""), " ", "")
-    ggsave(plot = plot, filename = fp, device = plotSaveFormat, dpi = plotDpi, width = cols * plotWidth, height = rows * plotHeight, limitsize = FALSE)
+    fp <- stringr::str_replace_all(paste(filename, ".", plotSaveFormat, sep = ""), " ", "")
+    ggplot2::ggsave(plot = plot, filename = fp, device = plotSaveFormat, dpi = plotDpi, width = cols * plotWidth, height = rows * plotHeight, limitsize = FALSE)
 }
 
 
