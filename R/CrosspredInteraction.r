@@ -68,6 +68,7 @@ CrosspredInteraction <- R6::R6Class(
                 self$coefExposure <- coefExposure
                 self$vcovExposure <- vcovExposure
                 self$vcovIntersection <- vcovIntersection
+                self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
             } else if (base::is.null(model)) {
                 stop("Crosspred expects either a class of type model (", private$.knownModels, ") or `coef{Interaction,Exposure}`, `vcov{Interaction,Exposure}` and `vcovIntersection` have to be specified")
             } else {

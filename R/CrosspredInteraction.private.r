@@ -9,21 +9,22 @@ CrosspredInteraction.privateFunctions <- list(
         XpredInteraction <- private$mkXpred(self$crossbasisInteraction, self$at, predlag, self$cen)
         XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
 
+        ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
         ## Create lag-specific effects and SE
         self$matfitInteraction <- matrix(XpredInteraction %*% self$coefInteraction, base::length(self$at), base::length(predlag))
         self$matfitExposure <- matrix(XpredExposure %*% self$coefExposure, base::length(self$at), base::length(predlag))
-        self$matfitIntersection <- matrix((XpredInteraction %*% self$coefInteraction) + (XpredExposure %*% self$coefExposure), base::length(self$at), base::length(predlag))
+        # self$matfitIntersection <- matrix((XpredInteraction %*% self$coefInteraction) + (XpredExposure %*% self$coefExposure), base::length(self$at), base::length(predlag))
 
         self$matseInteraction <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcovInteraction) * XpredInteraction))), base::length(self$at), base::length(predlag))
         self$matseExposure <- matrix(sqrt(pmax(0, rowSums((XpredExposure %*% self$vcovExposure) * XpredExposure))), base::length(self$at), base::length(predlag))
-        self$matseIntersection <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcovIntersection) * XpredInteraction))), base::length(self$at), base::length(predlag))
-
+        # self$matseIntersection <- matrix(sqrt(pmax(0, rowSums((XpredIntersection %*% self$vcovIntersection) * XpredIntersection))), base::length(self$at), base::length(predlag))
 
         ## Names
-        rownames(self$matfitInteraction) <- rownames(self$matseInteraction) <- rownames(self$matfitExposure) <- rownames(self$matseExposure) <-
-            rownames(self$matfitIntersection) <- rownames(self$matseIntersection) <- self$at
-        colnames(self$matfitInteraction) <- colnames(self$matseInteraction) <- colnames(self$matfitExposure) <- colnames(self$matseExposure) <-
-            colnames(self$matfitIntersection) <- colnames(self$matseIntersection) <- bouter("lag", predlag, paste, sep = "")
+        rownames(self$matfitInteraction) <- rownames(self$matseInteraction) <- rownames(self$matfitExposure) <- rownames(self$matseExposure) <- self$at
+        # rownames(self$matfitIntersection) <- rownames(self$matseIntersection) <- self$at
+        colnames(self$matfitInteraction) <- colnames(self$matseInteraction) <- colnames(self$matfitExposure) <- colnames(self$matseExposure) <- outer("lag", predlag, paste, sep = "")
+        # colnames(self$matfitIntersection) <- colnames(self$matseIntersection) <- outer("lag", predlag, paste, sep = "")
 
 
     },
