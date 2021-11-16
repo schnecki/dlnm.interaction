@@ -10,14 +10,20 @@ CrosspredInteraction.privateFunctions <- list(
         XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
 
         ## Create lag-specific effects and SE
-        self$matfitInteraction <- matrix(XpredInteraction %*% self$coef, base::length(self$at), base::length(predlag))
-        self$matfitExposure <- matrix(XpredExposure %*% self$coef, base::length(self$at), base::length(predlag))
-        self$matseInteraction <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcov) * XpredInteraction))), base::length(self$at), base::length(predlag))
-        self$matseExposure <- matrix(sqrt(pmax(0, rowSums((XpredExposure %*% self$vcov) * XpredExposure))), base::length(self$at), base::length(predlag))
+        self$matfitInteraction <- matrix(XpredInteraction %*% self$coefInteraction, base::length(self$at), base::length(predlag))
+        self$matfitExposure <- matrix(XpredExposure %*% self$coefExposure, base::length(self$at), base::length(predlag))
+        self$matfitIntersection <- matrix((XpredInteraction %*% self$coefInteraction) + (XpredExposure %*% self$coefExposure), base::length(self$at), base::length(predlag))
+
+        self$matseInteraction <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcovInteraction) * XpredInteraction))), base::length(self$at), base::length(predlag))
+        self$matseExposure <- matrix(sqrt(pmax(0, rowSums((XpredExposure %*% self$vcovExposure) * XpredExposure))), base::length(self$at), base::length(predlag))
+        self$matseIntersection <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcovIntersection) * XpredInteraction))), base::length(self$at), base::length(predlag))
+
 
         ## Names
-        rownames(self$matfitInteraction) <- rownames(self$matseInteraction) <- rownames(self$matfitExposure) <- rownames(self$matseExposure) <- self$at
-        colnames(self$matfitInteraction) <- colnames(self$matseInteraction) <- colnames(self$matfitExposure) <- colnames(self$matseExposure) <- outer("lag", predlag, paste, sep = "")
+        rownames(self$matfitInteraction) <- rownames(self$matseInteraction) <- rownames(self$matfitExposure) <- rownames(self$matseExposure) <-
+            rownames(self$matfitIntersection) <- rownames(self$matseIntersection) <- self$at
+        colnames(self$matfitInteraction) <- colnames(self$matseInteraction) <- colnames(self$matfitExposure) <- colnames(self$matseExposure) <-
+            colnames(self$matfitIntersection) <- colnames(self$matseIntersection) <- bouter("lag", predlag, paste, sep = "")
 
 
     },
@@ -41,16 +47,16 @@ CrosspredInteraction.privateFunctions <- list(
             XpredallInteraction <- XpredallInteraction + XpredInteraction[ind, , drop = FALSE]
             XpredallExposure <- XpredallExposure + XpredExposure[ind, , drop = FALSE]
             if (self$cumul) {
-                self$cumfitInteraction[, i] <- XpredallInteraction %*% self$coef
-                self$cumseInteraction[, i] <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcov) * XpredallInteraction)))
-                self$cumfitExposure[, i] <- XpredallExposure %*% self$coef
-                self$cumseExposure[, i] <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcov) * XpredallExposure)))
+                self$cumfitInteraction[, i] <- XpredallInteraction %*% self$coefInteraction
+                self$cumseInteraction[, i] <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcovInteraction) * XpredallInteraction)))
+                self$cumfitExposure[, i] <- XpredallExposure %*% self$coefExposure
+                self$cumseExposure[, i] <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcovExposure) * XpredallExposure)))
           }
         }
-        self$allfitInteraction <- as.vector(XpredallInteraction %*% self$coef)
-        self$allseInteraction <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcov) * XpredallInteraction)))
-        self$allfitExposure <- as.vector(XpredallExposure %*% self$coef)
-        self$allseExposure <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcov) * XpredallExposure)))
+        self$allfitInteraction <- as.vector(XpredallInteraction %*% self$coefInteraction)
+        self$allseInteraction <- sqrt(pmax(0, rowSums((XpredallInteraction %*% self$vcovInteraction) * XpredallInteraction)))
+        self$allfitExposure <- as.vector(XpredallExposure %*% self$coefExposure)
+        self$allseExposure <- sqrt(pmax(0, rowSums((XpredallExposure %*% self$vcovExposure) * XpredallExposure)))
 
         ## Names
         names(self$allfitInteraction) <- names(self$allseInteraction) <- names(self$allfitExposure) <- names(self$allseExposure) <- self$at

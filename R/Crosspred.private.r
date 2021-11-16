@@ -132,8 +132,6 @@ Crosspred.privateFunctions <- base::list(
         ## create marginal basis and call tensor
         ## NB: order of basis matrices in tensor changed since version 2.2.4 centering applied
         ##     only marginally to var dimension
-        ##:ess-bp-start::conditional@:##
-browser(expr={TRUE})##:ess-bp-end:##
         basisvar <- crossbasis$basisvar$mkNewWith(varvec)$x
         basislag <- crossbasis$basislag$mkNewWith(lagvec)$x
 

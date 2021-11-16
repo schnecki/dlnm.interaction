@@ -18,9 +18,11 @@ CrosspredInteraction <- R6::R6Class(
         .vcovExposure = NULL,              # matrix
         .vcovIntersection = NULL,          # matrix
         .matfitInteraction = NULL,         # Matrix
-        .matseInteraction = NULL,          # Matrix
         .matfitExposure = NULL,            # Matrix
+        .matfitIntersection = NULL,        # Matrix
+        .matseInteraction = NULL,          # Matrix
         .matseExposure = NULL,             # Matrix
+        .matseIntersection = NULL,         # Matrix
         .allfitInteraction = NULL,         # Vector
         .allseInteraction = NULL,          # Vector
         .cumfitInteraction = NULL,         # Matrix
@@ -77,7 +79,7 @@ CrosspredInteraction <- R6::R6Class(
                 self$coefExposure <- private$calcCoef(self$crossbasisExposureName, self$crossbasisExposure)
                 self$vcovExposure <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure)
                 self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
-                self$coef <- self$coefInteraction + self$coefExposure
+                ## self$coef <- self$coefInteraction + self$coefExposure
                 self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
             }
             self$at <- at
@@ -92,8 +94,8 @@ CrosspredInteraction <- R6::R6Class(
         plotLagAt = function(at, filepath = NULL, title = NULL, xDist = 0.10, colours = colourPalette, legendPos = c(0.5, 0.10)) {
             if (!base::is.numeric(at)) stop("Expecting numeric for at in function plotLagAt")
             at <- as.vector(at)
-            cpAtInteraction <- Crosspred$new(self$crossbasisInteraction, self$model, at, self$coef, self$vcov, self$cen, self$ci.level, self$cumul, self$model.link)
-            cpAtExposure <- Crosspred$new(self$crossbasisExposure, self$model, at, self$coef, self$vcov, self$cen, self$ci.level, self$cumul, self$model.link)
+            cpAtInteraction <- Crosspred$new(self$crossbasisInteraction, self$model, at, NULL, NULL, self$vcovIntersection, self$cen, self$ci.level, self$cumul, self$model.link)
+            cpAtExposure <- Crosspred$new(self$crossbasisExposure, self$model, at, self$coefExposure, self$vcovExposure, self$cen, self$ci.level, self$cumul, self$model.link)
             cpAtInteraction$crossbasisName <- self$crossbasisInteractionName
             cpAtExposure$crossbasisName <- self$crossbasisExposureName
             plotLagAt(cpAtInteraction, filepath, title, xDist, colours, legendPos)
@@ -133,9 +135,9 @@ CrosspredInteraction <- R6::R6Class(
             private$.crossbasisExposureName <- value
             return(self)
         },
-        ## coef = function(value) {
-        ##     stop("coef cannot be used for CrosspredInteraction!")
-        ## },
+        coef = function(value) {
+            stop("coef cannot be used for CrosspredInteraction!")
+        },
         ## vcov = function(value) {
         ##     stop("vcov cannot be used for CrosspredInteraction!")
         ## },
@@ -202,6 +204,20 @@ CrosspredInteraction <- R6::R6Class(
             if (!(base::is.matrix(value)))
                 stop("ERROR: Unallowed property ", value, " for 'matseExposure' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
             private$.matseExposure <- value
+            return(self)
+        },
+        matfitIntersection = function(value) {
+            if (missing(value)) return(private$.matfitIntersection)
+            if (!(base::is.matrix(value)))
+                stop("ERROR: Unallowed property ", value, " for 'matfitIntersection' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
+            private$.matfitIntersection <- value
+            return(self)
+        },
+        matseIntersection = function(value) {
+            if (missing(value)) return(private$.matseIntersection)
+            if (!(base::is.matrix(value)))
+                stop("ERROR: Unallowed property ", value, " for 'matseIntersection' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
+            private$.matseIntersection <- value
             return(self)
         },
         allfit = function(value) if (missing(value)) self$allfitInteraction else private$.allfit <- self$allfitInteraction <- value,
