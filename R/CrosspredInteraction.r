@@ -65,10 +65,11 @@ CrosspredInteraction <- R6::R6Class(
             if (!base::is.null(coefInteraction) && !base::is.null(vcovInteraction) && !base::is.null(coefExposure) && !base::is.null(vcovExposure) && !base::is.null(vcovIntersection)) {
                 self$coefInteraction <- coefInteraction
                 self$vcovInteraction <- vcovInteraction
-                self$coefExposure <- coefExposure
-                self$vcovExposure <- vcovExposure
-                self$vcovIntersection <- vcovIntersection
-                self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
+                stop("TODO")
+                ## self$coefExposure <- coefExposure
+                ## self$vcovExposure <- vcovExposure
+                ## self$vcovIntersection <- vcovIntersection
+                ## self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
             } else if (base::is.null(model)) {
                 stop("Crosspred expects either a class of type model (", private$.knownModels, ") or `coef{Interaction,Exposure}`, `vcov{Interaction,Exposure}` and `vcovIntersection` have to be specified")
             } else {
@@ -79,9 +80,9 @@ CrosspredInteraction <- R6::R6Class(
                 self$vcovInteraction <- private$calcVcov(self$crossbasisInteractionName, self$crossbasisInteraction)
                 self$coefExposure <- private$calcCoef(self$crossbasisExposureName, self$crossbasisExposure)
                 self$vcovExposure <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure)
-                self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
+                ## self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
                 ## self$coef <- self$coefInteraction + self$coefExposure
-                self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
+                ## self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
             }
             self$at <- at
             self$cen <- private$mkcen(cen, crossbasisInteraction)

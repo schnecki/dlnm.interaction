@@ -1,6 +1,51 @@
 #' @rdname CrosspredInteraction
 CrosspredInteraction.privateFunctions <- list(
 
+    calcVcov = function(cbNameCols, cbCols, cbNameRows = NULL, cbRows = NULL) {
+        if (is.null(cbNameRows)) cbNameRows <- cbNameCols
+        if (is.null(cbRows)) cbRows <- cbCols
+        vcov <- private$getvcov(self$model, class(self$model))
+        possNamesCols <- private$possibleNames(cbNameCols, cbCols)
+        possNamesRows <- private$possibleNames(cbNameRows, cbRows)
+        indicesRows <- private$mkIndexVector(rownames(vcov), possNamesRows)
+        indicesCols <- private$mkIndexVector(colnames(vcov), possNamesCols)
+
+        ## predlag <- as.vector(self$crossbasis$basislag$input)
+        ## lagvec <- rep(predlag, each = base::length(predvar))
+        ## basislag <- crossbasis$basislag$mkNewWith(lagvec)$x
+        ## basislag <- self$crossbasis$basislag$mkNewWith(predlag)$x
+        R <- self$crossbasis$basislag$x
+        ncol <- (dim(vcov)[1] - 1) / dim(R)[2] # Replications needed
+        nrow <- (dim(vcov)[2] - 1) / dim(R)[1]
+        ## matR <- R # rep(1, dim(R)[2])
+        ## for (i in seq(1, repsR - 1)) {
+        ##     matR <- rbind(matR, R)
+        ##     ## rbind(rep(1, dim(R)[2]), R)
+        ## }
+        ## I <- diag(ncol)
+        ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
+        ## I <- matrix(1, nrow = ncol * dim(R)[2], ncol = ncol)
+        ## IR <-  tensor.prod.model.matrix(list(I, R))
+        ## IRmat <- rbind(matrix(1, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(1, nrow = dim(IR)[1], ncol = 1), IR))
+        ## dim(IRmat)
+
+        I <- matrix(1, nrow = 1, ncol = ncol)
+        IR <-  kronecker(I, R)
+        IRmat <- rbind(matrix(1, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(1, nrow = dim(IR)[1], ncol = 1), IR))
+
+        ## Beta?
+        coefs <- as.matrix(coef(self$model))
+        IRCoefs <- kronecker(matrix(1, nrow = 1, ncol = ncol), R)
+        rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs)) %*% coefs
+        beta <- t(rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
+
+        vcovNew <- IRmat %*% vcov %*% t(IRmat)
+        vcovCut <- vcovNew[indicesRows, indicesCols, drop = FALSE]
+        return(vcovCut)
+    },
+
+
     #' Prediction of lag-specific effects
     predOfLag = function() {
 
@@ -9,8 +54,6 @@ CrosspredInteraction.privateFunctions <- list(
         XpredInteraction <- private$mkXpred(self$crossbasisInteraction, self$at, predlag, self$cen)
         XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
 
-        ##:ess-bp-start::conditional@:##
-browser(expr={TRUE})##:ess-bp-end:##
         ## Create lag-specific effects and SE
         self$matfitInteraction <- matrix(XpredInteraction %*% self$coefInteraction, base::length(self$at), base::length(predlag))
         self$matfitExposure <- matrix(XpredExposure %*% self$coefExposure, base::length(self$at), base::length(predlag))

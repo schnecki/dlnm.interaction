@@ -110,7 +110,7 @@ computeCrossbasis <- function(cb) {
 
     ## After the first transformation, i.e. on the basisvector, create a lagged variable, so we can
     ## transform it again.
-    for (v in seq(length = cb$basisvar$dimension[2])) {
+    for (v in seq_len(cb$basisvar$dimension[2])) {
         mat <- as.matrix(mkLaggedMatrix(cb$basisvar$x[, v], cb$lags))
 
         ## make @s(x_t, \eta) = q_{t\cdot}^T * C * \eta@ spline from lagged basis values.
