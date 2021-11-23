@@ -136,3 +136,4 @@ mkLaggedMatrix <- function(x, lags) {
     }
     return(Q)
 }
+
