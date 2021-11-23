@@ -33,15 +33,17 @@ browser(expr={TRUE})##:ess-bp-end:##
         I <- matrix(1, nrow = 1, ncol = ncol)
         IR <-  kronecker(I, R)
         IRmat <- rbind(matrix(1, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(1, nrow = dim(IR)[1], ncol = 1), IR))
+        vcovNew <- IRmat %*% vcov %*% t(IRmat)
+        vcovCut <- vcovNew[indicesRows, indicesCols, drop = FALSE]
+
 
         ## Beta?
         coefs <- as.matrix(coef(self$model))
         IRCoefs <- kronecker(matrix(1, nrow = 1, ncol = ncol), R)
-        rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs)) %*% coefs
         beta <- t(rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
+        beta <- t(rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
+        beta
 
-        vcovNew <- IRmat %*% vcov %*% t(IRmat)
-        vcovCut <- vcovNew[indicesRows, indicesCols, drop = FALSE]
         return(vcovCut)
     },
 
