@@ -30,19 +30,24 @@ browser(expr={TRUE})##:ess-bp-end:##
         ## IRmat <- rbind(matrix(1, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(1, nrow = dim(IR)[1], ncol = 1), IR))
         ## dim(IRmat)
 
-        I <- matrix(1, nrow = 1, ncol = ncol)
-        IR <-  kronecker(I, R)
-        IRmat <- rbind(matrix(1, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(1, nrow = dim(IR)[1], ncol = 1), IR))
-        self$vcov <- IRmat %*% vcov %*% t(IRmat)
-        ## vcovCut <- vcovNew[indicesRows, indicesCols, drop = FALSE]
+        ## Intercept to 1 or 0?
+        interc <- 1
 
+        ## I is Identiy or 1s?
+        I <- diag(ncol)
+        ## I <- matrix(1, nrow = 1, ncol = ncol)
 
         ## Beta?
         coefs <- as.matrix(coef(self$model))
-        IRCoefs <- kronecker(matrix(1, nrow = 1, ncol = ncol), R)
-        beta <- t(rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
-        beta <- t(rbind(rep(1, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
+        IRCoefs <- kronecker(matrix(interc, nrow = 1, ncol = ncol), R)
+        beta <- t(rbind(rep(interc, dim(IRCoefs)[1]), t(IRCoefs))) %*% coefs
         beta
+
+        IR <-  kronecker(I, R)
+        IRmat <- rbind(matrix(interc, ncol = 1 + dim(IR)[2], nrow = 1), cbind(matrix(interc, nrow = dim(IR)[1], ncol = 1), IR))
+        self$vcov <- IRmat %*% vcov %*% t(IRmat)
+        ## vcovCut <- vcovNew[indicesRows, indicesCols, drop = FALSE]
+
 
         return(vcovCut)
     },
