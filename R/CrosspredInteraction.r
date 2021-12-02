@@ -19,10 +19,8 @@ CrosspredInteraction <- R6::R6Class(
         .vcovIntersection = NULL,          # matrix
         .matfitInteraction = NULL,         # Matrix
         .matfitExposure = NULL,            # Matrix
-        .matfitIntersection = NULL,        # Matrix
         .matseInteraction = NULL,          # Matrix
         .matseExposure = NULL,             # Matrix
-        .matseIntersection = NULL,         # Matrix
         .allfitInteraction = NULL,         # Vector
         .allseInteraction = NULL,          # Vector
         .cumfitInteraction = NULL,         # Matrix
@@ -65,11 +63,9 @@ CrosspredInteraction <- R6::R6Class(
             if (!base::is.null(coefInteraction) && !base::is.null(vcovInteraction) && !base::is.null(coefExposure) && !base::is.null(vcovExposure) && !base::is.null(vcovIntersection)) {
                 self$coefInteraction <- coefInteraction
                 self$vcovInteraction <- vcovInteraction
-                stop("TODO")
-                ## self$coefExposure <- coefExposure
-                ## self$vcovExposure <- vcovExposure
-                ## self$vcovIntersection <- vcovIntersection
-                ## self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
+                self$coefExposure <- coefExposure
+                self$vcovExposure <- vcovExposure
+                self$vcovIntersection <- vcovIntersection
             } else if (base::is.null(model)) {
                 stop("Crosspred expects either a class of type model (", private$.knownModels, ") or `coef{Interaction,Exposure}`, `vcov{Interaction,Exposure}` and `vcovIntersection` have to be specified")
             } else {
@@ -80,10 +76,17 @@ CrosspredInteraction <- R6::R6Class(
                 self$vcovInteraction <- private$calcVcov(self$crossbasisInteractionName, self$crossbasisInteraction)
                 self$coefExposure <- private$calcCoef(self$crossbasisExposureName, self$crossbasisExposure)
                 self$vcovExposure <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure)
-                ## self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
-                ## self$coef <- self$coefInteraction + self$coefExposure
-                ## self$vcov <- self$vcovInteraction + self$vcovExposure + 2 * self$vcovIntersection
+                self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
             }
+            ## Build coef and vcov matrices
+            self$coef <- c(self$coefExposure, self$coefInteraction)
+            attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
+            self$vcov <- kronecker(matrix(c(1, 0, 0, 0), nrow = 2), self$vcovExposure) +
+                         kronecker(matrix(c(0, 1, 0, 0), nrow = 2), self$vcovIntersection) +
+                         kronecker(matrix(c(0, 0, 1, 0), nrow = 2), t(self$vcovIntersection)) +
+                         kronecker(matrix(c(0, 0, 0, 1), nrow = 2), self$vcovInteraction)
+            dimnames(self$vcov)[[1]] <- unlist(list(dimnames(self$vcovExposure)[[1]], dimnames(self$vcovInteraction)[[1]]))
+            dimnames(self$vcov)[[2]] <- unlist(list(dimnames(self$vcovExposure)[[2]], dimnames(self$vcovInteraction)[[2]]))
             self$at <- at
             self$cen <- private$mkcen(cen, crossbasisInteraction)
             self$cumul <- cumul
@@ -137,12 +140,6 @@ CrosspredInteraction <- R6::R6Class(
             private$.crossbasisExposureName <- value
             return(self)
         },
-        coef = function(value) {
-            stop("coef cannot be used for CrosspredInteraction!")
-        },
-        ## vcov = function(value) {
-        ##     stop("vcov cannot be used for CrosspredInteraction!")
-        ## },
         coefInteraction = function(value) {
             if (missing(value)) return(private$.coefInteraction)
             if (!(base::is.vector(value)))
@@ -178,8 +175,8 @@ CrosspredInteraction <- R6::R6Class(
             private$.vcovIntersection <- value
             return(self)
         },
-        matfit = function(value) if (missing(value)) self$matfitInteraction else private$.matfit <- self$matfitInteraction <- value,
-        matse =  function(value) if (missing(value)) self$matseInteraction else private$.matse <- self$matseInteraction <- value,
+        ## matfit = function(value) if (missing(value)) self$matfitInteraction else private$.matfit <- self$matfitInteraction <- value,
+        ## matse =  function(value) if (missing(value)) self$matseInteraction else private$.matse <- self$matseInteraction <- value,
         matfitInteraction = function(value) {
             if (missing(value)) return(private$.matfitInteraction)
             if (!(base::is.matrix(value)))
@@ -208,24 +205,10 @@ CrosspredInteraction <- R6::R6Class(
             private$.matseExposure <- value
             return(self)
         },
-        matfitIntersection = function(value) {
-            if (missing(value)) return(private$.matfitIntersection)
-            if (!(base::is.matrix(value)))
-                stop("ERROR: Unallowed property ", value, " for 'matfitIntersection' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
-            private$.matfitIntersection <- value
-            return(self)
-        },
-        matseIntersection = function(value) {
-            if (missing(value)) return(private$.matseIntersection)
-            if (!(base::is.matrix(value)))
-                stop("ERROR: Unallowed property ", value, " for 'matseIntersection' at ", getSrcFilename(function(){}), ":", getSrcLocation(function(){}))
-            private$.matseIntersection <- value
-            return(self)
-        },
-        allfit = function(value) if (missing(value)) self$allfitInteraction else private$.allfit <- self$allfitInteraction <- value,
-        cumfit = function(value) if (missing(value)) self$cumfitInteraction else private$.cumfit <- self$cumfitInteraction <- value,
-        allse =  function(value) if (missing(value)) self$allseInteraction else private$.allse <- self$allseInteraction <- value,
-        cumse =  function(value) if (missing(value)) self$cumseInteraction else private$.cumse <- self$cumseInteraction <- value,
+        ## allfit = function(value) if (missing(value)) self$allfitInteraction else private$.allfit <- self$allfitInteraction <- value,
+        ## cumfit = function(value) if (missing(value)) self$cumfitInteraction else private$.cumfit <- self$cumfitInteraction <- value,
+        ## allse =  function(value) if (missing(value)) self$allseInteraction else private$.allse <- self$allseInteraction <- value,
+        ## cumse =  function(value) if (missing(value)) self$cumseInteraction else private$.cumse <- self$cumseInteraction <- value,
         allfitInteraction = function(value) {
             if (missing(value)) return(private$.allfitInteraction)
             if (!(base::is.vector(value)))
@@ -294,15 +277,15 @@ CrosspredInteraction <- R6::R6Class(
             private$.cumseExposure <- value
             return(self)
         },
-        matRRfit =  function(value) if (missing(value)) self$matRRfitInteraction  else private$.matRRfit <- self$matRRfitInteraction <- value,
-        matRRlow =  function(value) if (missing(value)) self$matRRlowInteraction  else private$.matRRlow <- self$matRRlowInteraction <- value,
-        matRRhigh = function(value) if (missing(value)) self$matRRhighInteraction else private$.matRRhigh <- self$matRRhighInteraction <- value,
-        allRRfit =  function(value) if (missing(value)) self$allRRfitInteraction  else private$.allRRfit <- self$allRRfitInteraction <- value,
-        allRRlow =  function(value) if (missing(value)) self$allRRlowInteraction  else private$.allRRlow <- self$allRRlowInteraction <- value,
-        allRRhigh = function(value) if (missing(value)) self$allRRhighInteraction else private$.allRRhigh <- self$allRRhighInteraction <- value,
-        cumRRfit =  function(value) if (missing(value)) self$cumRRfitInteraction  else private$.cumRRfit <- self$cumRRfitInteraction <- value,
-        cumRRlow =  function(value) if (missing(value)) self$cumRRlowInteraction  else private$.cumRRlow <- self$cumRRlowInteraction <- value,
-        cumRRhigh = function(value) if (missing(value)) self$cumRRhighInteraction else private$.cumRRhigh <- self$cumRRhighInteraction <- value,
+        ## matRRfit =  function(value) if (missing(value)) self$matRRfitInteraction  else private$.matRRfit <- self$matRRfitInteraction <- value,
+        ## matRRlow =  function(value) if (missing(value)) self$matRRlowInteraction  else private$.matRRlow <- self$matRRlowInteraction <- value,
+        ## matRRhigh = function(value) if (missing(value)) self$matRRhighInteraction else private$.matRRhigh <- self$matRRhighInteraction <- value,
+        ## allRRfit =  function(value) if (missing(value)) self$allRRfitInteraction  else private$.allRRfit <- self$allRRfitInteraction <- value,
+        ## allRRlow =  function(value) if (missing(value)) self$allRRlowInteraction  else private$.allRRlow <- self$allRRlowInteraction <- value,
+        ## allRRhigh = function(value) if (missing(value)) self$allRRhighInteraction else private$.allRRhigh <- self$allRRhighInteraction <- value,
+        ## cumRRfit =  function(value) if (missing(value)) self$cumRRfitInteraction  else private$.cumRRfit <- self$cumRRfitInteraction <- value,
+        ## cumRRlow =  function(value) if (missing(value)) self$cumRRlowInteraction  else private$.cumRRlow <- self$cumRRlowInteraction <- value,
+        ## cumRRhigh = function(value) if (missing(value)) self$cumRRhighInteraction else private$.cumRRhigh <- self$cumRRhighInteraction <- value,
         matRRfitInteraction = function(value) {
             if (missing(value)) return(private$.matRRfitInteraction)
             if (!(base::is.matrix(value)))
