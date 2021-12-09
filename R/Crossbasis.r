@@ -1,7 +1,8 @@
 #' Crossbasis class
 #'
 #' This class defines a Crossbasis
-#' @export
+#' @export Crossbasis
+#' @exportClass Crossbasis
 Crossbasis <- R6::R6Class(
     classname = "Crossbasis",
 

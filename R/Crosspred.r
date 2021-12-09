@@ -1,7 +1,8 @@
 #' Crosspred class
 #'
 #' This class defines and computes a prediction for Crosspred
-#' @export
+#' @export Crosspred
+#' @exportClass Crosspred
 Crosspred <- R6::R6Class(
     classname = "Crosspred",
 

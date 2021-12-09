@@ -19,11 +19,8 @@ Imports:
   R6,
   stats,
   purrr,
-  # graphics,
-  # grDevices,
   utils,
   splines,
-  # nlme,
   mgcv,
   tsModel,
   ggplot2

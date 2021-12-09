@@ -1,7 +1,8 @@
 #' Basis class
 #'
 #' This class defines a basis
-#' @export
+#' @export Basis
+#' @exportClass Basis
 Basis <- R6::R6Class(
     classname = "Basis",
 
@@ -82,6 +83,7 @@ Basis <- R6::R6Class(
     )
 
 )
+
 
 ## We could implement the + and other operators
 `+.Basis` <- function(b1, b2) {

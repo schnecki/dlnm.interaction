@@ -1,7 +1,8 @@
 
 #' Linear Basis
 #'
-#' @export
+#' @export Ns
+#' @exportClass Ns
 Ns <- R6::R6Class(
     classname = "Ns",
 

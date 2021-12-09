@@ -1,7 +1,8 @@
 
 #' Linear Basis
 #'
-#' @export
+#' @export Integer
+#' @exportClass Integer
 Integer <- R6::R6Class(
     classname = "Integer",
 
