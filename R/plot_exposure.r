@@ -1,4 +1,16 @@
 
+#' Function used for saving the plots.
+#' @param name string.
+savePlot <- function(name, plot = last_plot(), cols = 1, rows = 1) {
+    plotSaveFormat <- "pdf"
+    plotDpi <- 300
+    plotWidth <- 10
+    plotHeight <- 3
+    filename <- str_replace_all(paste(name, ".", plotSaveFormat, sep = ""), " ", "")
+    ggsave(plot = plot, filename = filename, device = plotSaveFormat, dpi = plotDpi, width = cols * plotWidth, height = rows * plotHeight, limitsize = FALSE)
+}
+
+
 #' Retrieve GGPlot object for the Relative Risk (RR) dependend on the Exposure of a Crosspred object.
 #' @param cp          Crosspred object to plot.
 #' @param filepath    Filepath to save the plot.
@@ -35,6 +47,6 @@ plotExposure <- function(cp, filepath = NULL, title = NULL, colours = colourPale
         labs(title = title, x = "Exposure", y = "RR", color = "Legend") +
         theme(legend.position = legendPos, legend.direction = "horizontal") +
         scale_color_manual(values = colours, labels = legendVals)
-
+    if (!is.null(filepath)) savePlot(filepath, plot = plot)
     return(plot)
 }
