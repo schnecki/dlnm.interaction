@@ -5,7 +5,7 @@ savePlot <- function(name, plot = last_plot(), cols = 1, rows = 1) {
     plotSaveFormat <- "pdf"
     plotDpi <- 300
     plotWidth <- 10
-    plotHeight <- 3
+    plotHeight <- 6
     filename <- str_replace_all(paste(name, ".", plotSaveFormat, sep = ""), " ", "")
     ggsave(plot = plot, filename = filename, device = plotSaveFormat, dpi = plotDpi, width = cols * plotWidth, height = rows * plotHeight, limitsize = FALSE)
 }

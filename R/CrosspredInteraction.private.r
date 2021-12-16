@@ -20,11 +20,33 @@ CrosspredInteraction.privateFunctions <- list(
         predlag <- as.vector(self$crossbasisInteraction$basislag$input)
         XpredInteraction <- private$mkXpred(self$crossbasisInteraction, self$at, predlag, self$cen)
         XpredExposure <- private$mkXpred(self$crossbasisExposure, self$at, predlag, self$cen)
-        Xpred <- cbind(XpredExposure, XpredInteraction)
+        ## Xpred <- cbind(XpredExposure, XpredInteraction)
+        Xpred <- XpredInteraction
+
+        ## R <- self$crossbasisInteraction$basislag$x
+        ## ## I <- diag(length(self$coef))
+        ## Gamma_l <- self$crossbasisInteraction$basislag$dimension[[1]]
+        ## Gamma_x <- self$crossbasisInteraction$basisvar$dimension[[2]]
+        ## I <- diag(2 * Gamma_x)
+        ## IR <- kronecker(I, R)
+        ## beta <- IR %*% self$coef # dimensions beta: (2 * Gamma_l * Gamma_x) x 1
+
+        ## beta1Sel <- c(rep(1, Gamma_l * Gamma_x), rep(0, Gamma_l * Gamma_x))
+        ## beta12Sel <- c(rep(1, Gamma_l * Gamma_x), rep(1, Gamma_l * Gamma_x))
+        ## beta1Star <- beta1Sel %*% beta
+        ## beta2Star <- beta12Sel %*% beta
+
+        ## self$vcov <- IR %*% self$vcov %*% t(IR)
+
+        ## beta1Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l))), kronecker(diag(Gamma_x), rep(0, Gamma_l))) %*% beta
+        ## beta2Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(1, Gamma_l))) %*% beta
+
 
         ## Create lag-specific effects and SE
         self$matfitInteraction <- matrix(XpredInteraction %*% self$coefInteraction, base::length(self$at), base::length(predlag))
         self$matfitExposure <- matrix(XpredExposure %*% self$coefExposure, base::length(self$at), base::length(predlag))
+        ##:ess-bp-start::conditional@:##
+browser(expr={TRUE})##:ess-bp-end:##
         self$matfit <- matrix((Xpred %*% self$coef), base::length(self$at), base::length(predlag))
 
         self$matseInteraction <- matrix(sqrt(pmax(0, rowSums((XpredInteraction %*% self$vcovInteraction) * XpredInteraction))), base::length(self$at), base::length(predlag))

@@ -80,14 +80,57 @@ CrosspredInteraction <- R6::R6Class(
                 self$vcovIntersection <- private$calcVcov(self$crossbasisExposureName, self$crossbasisExposure, self$crossbasisInteractionName, self$crossbasisInteraction)
             }
             ## Build coef and vcov matrices
-            self$coef <- c(self$coefExposure, self$coefInteraction)
-            attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
-            self$vcov <- kronecker(matrix(c(1, 0, 0, 0), nrow = 2), self$vcovExposure) +
+            coefNu <- c(self$coefExposure, self$coefInteraction)
+            vcovNu <- kronecker(matrix(c(1, 0, 0, 0), nrow = 2), self$vcovExposure) +
                          kronecker(matrix(c(0, 1, 0, 0), nrow = 2), self$vcovIntersection) +
                          kronecker(matrix(c(0, 0, 1, 0), nrow = 2), t(self$vcovIntersection)) +
                          kronecker(matrix(c(0, 0, 0, 1), nrow = 2), self$vcovInteraction)
-            dimnames(self$vcov)[[1]] <- unlist(list(dimnames(self$vcovExposure)[[1]], dimnames(self$vcovInteraction)[[1]]))
-            dimnames(self$vcov)[[2]] <- unlist(list(dimnames(self$vcovExposure)[[2]], dimnames(self$vcovInteraction)[[2]]))
+
+            ## Calculate beta value
+            R <- self$crossbasisInteraction$basislag$x
+            Gamma_l <- self$crossbasisInteraction$basislag$dimension[[1]]
+            Gamma_x <- self$crossbasisInteraction$basisvar$dimension[[2]]
+            I <- diag(2 * Gamma_x)
+            IR <- kronecker(I, R)
+            beta <- IR %*% coefNu # dimensions beta: (2 * Gamma_l * Gamma_x) x 1
+            ## attr(beta, "names") <- unlist(list())
+            selLowerBottom <- t(matrix(c(rep(0, 2 * Gamma_l), rep(1, Gamma_l), rep(0, Gamma_l)), nrow = 2 * Gamma_l))
+
+            betas <- rep(0, Gamma_l)
+            gammas <- rep(0, Gamma_l)
+            offset <- Gamma_x * Gamma_l
+            for (i in seq_len(Gamma_x)) {
+                betas <- betas + beta[seq(1 + (i - 1) * Gamma_l, (i - 1) * Gamma_l + Gamma_l)]
+                gammas <- gammas + beta[seq(offset + (i - 1) * Gamma_l + 1, offset + (i - 1) * Gamma_l + Gamma_l)]
+            }
+
+            self$coef <- c(betas, gammas)
+            ## attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
+
+            ## sel <- c(rep(c(1, rep(0, Gamma_l - 1)), Gamma_x), rep(0, Gamma_x * Gamma_l))
+            # sumOverLagSel <- kronecker(diag(2 * Gamma_x)  + selLowerBottom, t(rep(1, Gamma_l)))
+            ## sumOverLagSel <- kronecker(diag(2 * Gamma_l)  + selLowerBottom, t(rep(1, Gamma_l))
+
+            ## self$coef <- as.vector(sumOverLagSel %*% beta)
+            # attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
+
+            ## Sum betas
+            ## beta1Sel <- c(rep(1, Gamma_l * Gamma_x), rep(0, Gamma_l * Gamma_x))  # Only Exposure
+            ## beta12Sel <- c(rep(1, Gamma_l * Gamma_x), rep(1, Gamma_l * Gamma_x)) # Exposure and Interaction
+            ## beta1Star <- beta1Sel %*% beta
+            ## beta2Star <- beta12Sel %*% beta
+            ##
+            ## beta1Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l))), kronecker(diag(Gamma_x), rep(0, Gamma_l))) %*% beta
+            ## beta2Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(1, Gamma_l))) %*% beta
+            ##
+            ## self$coef <- c(beta1Star, beta2Star)
+            ## attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
+
+            self$vcov <- IR %*% vcovNu %*% t(IR)
+            ## dimnames(self$vcov)[[1]] <- unlist(list(dimnames(self$vcovExposure)[[1]], dimnames(self$vcovInteraction)[[1]]))
+            ## dimnames(self$vcov)[[2]] <- unlist(list(dimnames(self$vcovExposure)[[2]], dimnames(self$vcovInteraction)[[2]]))
+
+
             self$at <- at
             self$cen <- private$mkcen(cen, crossbasisInteraction)
             self$cumul <- cumul

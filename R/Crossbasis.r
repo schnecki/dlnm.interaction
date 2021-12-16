@@ -19,7 +19,7 @@ Crossbasis <- R6::R6Class(
 
     ## Methods
     public = list(
-        initialize = function(x, basisvar, basislag) {
+        initialize = function(basisvar, basislag, x = basisvar$input) {
             self$input <- as.matrix(x)
             self$basisvar <- basisvar$clone() # Clone, as the object might change
             self$basislag <- basislag$clone() # Clone
