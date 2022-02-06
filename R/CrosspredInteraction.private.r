@@ -23,23 +23,24 @@ CrosspredInteraction.privateFunctions <- list(
         ## Xpred <- cbind(XpredExposure, XpredInteraction)
         Xpred <- XpredInteraction
 
-        ## R <- self$crossbasisInteraction$basislag$x
-        ## ## I <- diag(length(self$coef))
-        ## Gamma_l <- self$crossbasisInteraction$basislag$dimension[[1]]
-        ## Gamma_x <- self$crossbasisInteraction$basisvar$dimension[[2]]
-        ## I <- diag(2 * Gamma_x)
-        ## IR <- kronecker(I, R)
-        ## beta <- IR %*% self$coef # dimensions beta: (2 * Gamma_l * Gamma_x) x 1
+        R <- self$crossbasisInteraction$basislag$x
+        ## I <- diag(length(self$coef))
+        Gamma_l <- self$crossbasisInteraction$basislag$dimension[[1]]
+        Gamma_x <- self$crossbasisInteraction$basisvar$dimension[[2]]
+        I <- diag(2 * Gamma_x)
+        IR <- kronecker(I, R)
+        # beta <- IR %*% (self$coef %*% IR) # dimensions beta: (2 * Gamma_l * Gamma_x) x 1
+        beta <- IR %*% t(self$coef %*% IR)
 
-        ## beta1Sel <- c(rep(1, Gamma_l * Gamma_x), rep(0, Gamma_l * Gamma_x))
-        ## beta12Sel <- c(rep(1, Gamma_l * Gamma_x), rep(1, Gamma_l * Gamma_x))
-        ## beta1Star <- beta1Sel %*% beta
-        ## beta2Star <- beta12Sel %*% beta
+        beta1Sel <- c(rep(1, Gamma_l * Gamma_x), rep(0, Gamma_l * Gamma_x))
+        beta12Sel <- c(rep(1, Gamma_l * Gamma_x), rep(1, Gamma_l * Gamma_x))
+        beta1Star <- beta1Sel %*% beta
+        beta2Star <- beta12Sel %*% beta
 
-        ## self$vcov <- IR %*% self$vcov %*% t(IR)
+        self$vcov <- IR %*% self$vcov %*% t(IR)
 
-        ## beta1Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l))), kronecker(diag(Gamma_x), rep(0, Gamma_l))) %*% beta
-        ## beta2Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(1, Gamma_l))) %*% beta
+        beta1Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l))), kronecker(diag(Gamma_x), rep(0, Gamma_l))) %*% beta
+        beta2Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(1, Gamma_l))) %*% beta
 
 
         ## Create lag-specific effects and SE
