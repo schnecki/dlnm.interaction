@@ -54,9 +54,13 @@ CrosspredInteraction <- R6::R6Class(
 
     ## Methods
     public = list(
-        initialize = function(crossbasisExposure, crossbasisInteraction, model, at, coefInteraction = NULL, coefExposure = NULL, vcovInteraction = NULL, vcovExposure = NULL, vcovIntersection = NULL
+        initialize = function(crossbasisExposure, crossbasisInteraction, model, at = NULL, quantilesExposure1 = NULL, quantilesExposure2 = NULL, coefInteraction = NULL, coefExposure = NULL, vcovInteraction = NULL, vcovExposure = NULL, vcovIntersection = NULL
                             , cen = NULL, ci.level=0.95, cumul = FALSE, model.link=NULL) {
             if (identical(crossbasisExposure$basislag, crossbasisInteraction$basislag)) stop("The crossbases have to have the same basislag!")
+            if (base::is.null(at) && (base::is.null(quantilesExposure1) || base::is.null(quantilesExposure2)))
+                stop("You must either specify a value for `at` or a value for both, `quantilesExposure1` and `quantilesExposure2`. Note that the value for `at` should be computed in regard to both dimensions w/o unique!")
+            else if (base::is.null(at)) self$at <- unique(quantilesExposure1 * quantilesExposure2)
+
             self$crossbasisInteraction <- crossbasisInteraction$clone()
             self$crossbasisExposure <- crossbasisExposure$clone()
             self$crossbasisInteractionName <- deparse(substitute(crossbasisInteraction))
@@ -82,29 +86,45 @@ CrosspredInteraction <- R6::R6Class(
             ## Build coef and vcov matrices
             coefNu <- c(self$coefExposure, self$coefInteraction)
             vcovNu <- kronecker(matrix(c(1, 0, 0, 0), nrow = 2), self$vcovExposure) +
-                         kronecker(matrix(c(0, 1, 0, 0), nrow = 2), self$vcovIntersection) +
-                         kronecker(matrix(c(0, 0, 1, 0), nrow = 2), t(self$vcovIntersection)) +
-                         kronecker(matrix(c(0, 0, 0, 1), nrow = 2), self$vcovInteraction)
+                      kronecker(matrix(c(0, 1, 0, 0), nrow = 2), self$vcovIntersection) +
+                      kronecker(matrix(c(0, 0, 1, 0), nrow = 2), t(self$vcovIntersection)) +
+                      kronecker(matrix(c(0, 0, 0, 1), nrow = 2), self$vcovInteraction)
 
             ## Calculate beta value
             R <- self$crossbasisInteraction$basislag$x
             Gamma_l <- self$crossbasisInteraction$basislag$dimension[[1]]
             Gamma_x <- self$crossbasisInteraction$basisvar$dimension[[2]]
+            nrLags <- length(self$crossbasisInteraction$lags)
             I <- diag(2 * Gamma_x)
             IR <- kronecker(I, R)
-            beta <- IR %*% coefNu # dimensions beta: (2 * Gamma_l * Gamma_x) x 1
-            ## attr(beta, "names") <- unlist(list())
-            selLowerBottom <- t(matrix(c(rep(0, 2 * Gamma_l), rep(1, Gamma_l), rep(0, Gamma_l)), nrow = 2 * Gamma_l))
+            beta <- IR %*% coefNu
+            self$vcov <- IR %*% vcovNu %*% t(IR)
+            ## beta1Sel <- c(rep(1, Gamma_l * Gamma_x), rep(0, Gamma_l * Gamma_x))
+            ## beta12Sel <- c(rep(1, Gamma_l * Gamma_x), rep(1, Gamma_l * Gamma_x))
+            beta1Sel <- c(kronecker(diag(Gamma_x), rep(1, nrLags)), c(kronecker(diag(Gamma_x), rep(0, nrLags))))
+            beta12Sel <- c(kronecker(diag(Gamma_x), rep(1, nrLags)), c(kronecker(diag(Gamma_x), rep(1, nrLags))))
 
-            betas <- rep(0, Gamma_l)
-            gammas <- rep(0, Gamma_l)
-            offset <- Gamma_x * Gamma_l
-            for (i in seq_len(Gamma_x)) {
-                betas <- betas + beta[seq(1 + (i - 1) * Gamma_l, (i - 1) * Gamma_l + Gamma_l)]
-                gammas <- gammas + beta[seq(offset + (i - 1) * Gamma_l + 1, offset + (i - 1) * Gamma_l + Gamma_l)]
-            }
+            beta1Star <- beta1Sel %*% beta
+            beta2Star <- beta12Sel %*% beta
+            self$coef <- c(beta1Star, beta2Star)
 
-            self$coef <- c(betas, gammas)
+
+            ## Lo mismo:
+            ## beta1Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(0, Gamma_l))) %*% beta
+            ## beta2Star_ <- c(kronecker(diag(Gamma_x), rep(1, Gamma_l)), kronecker(diag(Gamma_x), rep(1, Gamma_l))) %*% beta
+
+
+            ## selLowerBottom <- t(matrix(c(rep(0, 2 * Gamma_l), rep(1, Gamma_l), rep(0, Gamma_l)), nrow = 2 * Gamma_l))
+
+            ## betas <- rep(0, Gamma_l)
+            ## gammas <- rep(0, Gamma_l)
+            ## offset <- Gamma_x * Gamma_l
+            ## for (i in seq_len(Gamma_x)) {
+            ##     betas <- betas + beta[seq(1 + (i - 1) * Gamma_l, (i - 1) * Gamma_l + Gamma_l)]
+            ##     gammas <- gammas + beta[seq(offset + (i - 1) * Gamma_l + 1, offset + (i - 1) * Gamma_l + Gamma_l)]
+            ## }
+
+            ## self$coef <- c(betas, gammas)
             ## attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
 
             ## sel <- c(rep(c(1, rep(0, Gamma_l - 1)), Gamma_x), rep(0, Gamma_x * Gamma_l))
@@ -126,7 +146,7 @@ CrosspredInteraction <- R6::R6Class(
             ## self$coef <- c(beta1Star, beta2Star)
             ## attr(self$coef, "names") <- unlist(list(attr(self$coefExposure, "names"), attr(self$coefInteraction, "names")))
 
-            self$vcov <- IR %*% vcovNu %*% t(IR)
+            ## self$vcov <- IR %*% vcovNu %*% t(IR)
             ## dimnames(self$vcov)[[1]] <- unlist(list(dimnames(self$vcovExposure)[[1]], dimnames(self$vcovInteraction)[[1]]))
             ## dimnames(self$vcov)[[2]] <- unlist(list(dimnames(self$vcovExposure)[[2]], dimnames(self$vcovInteraction)[[2]]))
 

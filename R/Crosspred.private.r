@@ -139,8 +139,7 @@ Crosspred.privateFunctions <- base::list(
             basiscen <- crossbasis$basisvar$mkNewWith(cen)$x
             basisvar <- scale(basisvar, center = basiscen, scale = FALSE)
         }
-        Xpred <- tensor.prod.model.matrix(list(basisvar, basislag))
-        return(Xpred)
+        return(tensor.prod.model.matrix(list(basisvar, basislag)))
     },
 
     #' Prediction of lag-specific effects
